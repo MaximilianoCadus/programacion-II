@@ -6,6 +6,6 @@ class User
 {
 	public function sayHello()
     {
-        return "Hello from User!";
+        return "Hello from User!\n";
     }
 }
