@@ -1,0 +1,78 @@
+{
+	"info": {
+		"_postman_id": "04219b80-f37c-48fd-9172-5af8b881e528",
+		"name": "PokéApi",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21505010"
+	},
+	"item": [
+		{
+			"name": "Obtener Pokémon",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://pokeapi.co/api/v2/pokemon/pikachu",
+					"protocol": "https",
+					"host": [
+						"pokeapi",
+						"co"
+					],
+					"path": [
+						"api",
+						"v2",
+						"pokemon",
+						"pikachu"
+					]
+				},
+				"description": "## Descripción\n\nObtiene información detallada de un Pokémon por nombre o ID.\n\n## Ejemplo de URL\n\n`https://pokeapi.co/api/v2/pokemon/pikachu`\n\n## Ejemplo de respuesta (200 OK)\n\n\\`\\`\\`json  \n{  \n\"id\": 25,  \n\"name\": \"pikachu\",  \n\"height\": 4,  \n\"weight\": 60,  \n\"abilities\": \\[  \n{  \n\"ability\": {  \n\"name\": \"static\",  \n\"url\": \"[https://pokeapi.co/api/v2/ability/9/\"](https://pokeapi.co/api/v2/ability/9/)  \n}  \n}  \n\\],  \n\"types\": \\[  \n{  \n\"type\": {  \n\"name\": \"electric\"  \n}  \n}  \n\\]  \n}"
+			},
+			"response": []
+		},
+		{
+			"name": "Listar tipos",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://pokeapi.co/api/v2/type",
+					"protocol": "https",
+					"host": [
+						"pokeapi",
+						"co"
+					],
+					"path": [
+						"api",
+						"v2",
+						"type"
+					]
+				},
+				"description": "## Descripción\n\nLista todos los tipos de Pokémon.\n\n## Ejemplo de respuesta (200 OK)\n\n\\`\\`\\`json  \n{  \n\"count\": 20,  \n\"results\": \\[  \n{ \"name\": \"normal\", \"url\": \"[https://pokeapi.co/api/v2/type/1/\"](https://pokeapi.co/api/v2/type/1/) },  \n{ \"name\": \"fighting\", \"url\": \"[https://pokeapi.co/api/v2/type/2/\"](https://pokeapi.co/api/v2/type/2/) }  \n\\]  \n}"
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener habilidad",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://pokeapi.co/api/v2/ability/static",
+					"protocol": "https",
+					"host": [
+						"pokeapi",
+						"co"
+					],
+					"path": [
+						"api",
+						"v2",
+						"ability",
+						"static"
+					]
+				},
+				"description": "## Descripción\n\nLista todas las habilidades de Pokémon.\n\n## Ejemplo de respuesta (200 OK)\n\n\"effect\": \"Hat außerhalb vom Kampf keinen Effekt.\",  \n\"language\": {  \n\"name\": \"de\",  \n\"url\": \"[https://pokeapi.co/api/v2/language/6/\"](https://pokeapi.co/api/v2/language/6/)  \n}"
+			},
+			"response": []
+		}
+	]
+}
