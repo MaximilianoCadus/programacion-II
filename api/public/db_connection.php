@@ -36,7 +36,7 @@ class Database {
         try {
             $query = "SELECT * FROM usuarios WHERE UUID = :UUID";
             $stmt = $this->pdo->prepare($query);
-            $stmt->bindParam(':UUID', $UUID, PDO::PARAM_INT);
+            $stmt->bindParam(':UUID', $UUID, PDO::PARAM_STR);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {

@@ -11,7 +11,7 @@ $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 
-$host = '192.168.0.77';
+$host = '172.16.203.164';
 $dbname = 'api';
 $username = 'root';
 $password = 'Itachi91218';
