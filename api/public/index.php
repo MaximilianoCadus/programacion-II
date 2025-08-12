@@ -2,6 +2,7 @@
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
+use Tuupola\Middleware\HttpBasicAuthentication;
 
 require __DIR__ . '/../vendor/autoload.php';
 require_once 'db_connection.php';
@@ -17,6 +18,36 @@ $username = 'root';
 $password = 'Itachi91218';
 
 $db = new Database($host, $dbname, $username, $password);
+
+$basePath = '/programacion-II/api/public';
+
+$app->add(new HttpBasicAuthentication([
+    "path" => [
+        $basePath . "/user",
+        "/user" 
+    ],
+    "realm" => "Protected",
+    "secure" => false, 
+    "users" => [
+        "user" => "password"
+    ],
+    "before" => function ($request, $params) {
+        error_log("[BasicAuth] Intento user=" . ($params['user'] ?? 'null'));
+        return $request;
+    },
+    "error" => function ($response, $arguments) {
+        error_log("[BasicAuth] Falló autenticación");
+        $data = [
+            "error" => "Credenciales inválidas o faltantes",
+            "message" => $arguments["message"] ?? "Unauthorized"
+        ];
+        $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
+        $response->getBody()->write($payload);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(401);
+    }
+]));
 
 $app->post('/user', function (Request $request, Response $response, $args) use ($db) {
 
@@ -449,6 +480,6 @@ $app->delete('/reservas/{id}', function (Request $request, Response $response, $
     return $response->withStatus(200);
 });
 
-$app->setBasePath('/programacion-II/api/public');
+$app->setBasePath($basePath);
 
 $app->run();
