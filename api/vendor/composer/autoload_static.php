@@ -53,6 +53,7 @@ class ComposerStaticInit026509606a55be5c56c243e48adc6597
         ),
         'F' => 
         array (
+            'Firebase\\JWT\\' => 13,
             'Fig\\Http\\Message\\' => 17,
             'FastRoute\\' => 10,
         ),
@@ -61,8 +62,9 @@ class ComposerStaticInit026509606a55be5c56c243e48adc6597
     public static $prefixDirsPsr4 = array (
         'Tuupola\\Middleware\\' => 
         array (
-            0 => __DIR__ . '/..' . '/tuupola/slim-basic-auth/src',
-            1 => __DIR__ . '/..' . '/tuupola/callable-handler/src',
+            0 => __DIR__ . '/..' . '/tuupola/slim-jwt-auth/src',
+            1 => __DIR__ . '/..' . '/tuupola/slim-basic-auth/src',
+            2 => __DIR__ . '/..' . '/tuupola/callable-handler/src',
         ),
         'Tuupola\\Http\\Factory\\' => 
         array (
@@ -113,6 +115,10 @@ class ComposerStaticInit026509606a55be5c56c243e48adc6597
         'GuzzleHttp\\Psr7\\' => 
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/psr7/src',
+        ),
+        'Firebase\\JWT\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
         ),
         'Fig\\Http\\Message\\' => 
         array (

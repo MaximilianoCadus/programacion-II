@@ -3,6 +3,8 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Tuupola\Middleware\HttpBasicAuthentication;
+use Tuupola\Middleware\JwtAuthentication; // agregar namespace correcto para JWT Auth
+use Firebase\JWT\JWT;
 
 require __DIR__ . '/../vendor/autoload.php';
 require_once 'db_connection.php';
@@ -46,6 +48,56 @@ $app->add(new HttpBasicAuthentication([
         return $response
             ->withHeader('Content-Type', 'application/json')
             ->withStatus(401);
+    }
+]));
+
+$app->post('/login', function (Request $request, Response $response) {
+    $data = $request->getParsedBody();
+    $username = $data['username'] ?? '';
+    $password = $data['password'] ?? '';
+
+    if ($username === 'user' && $password === 'password') {
+        $key = "your_secret_key";
+        $payload = [
+            "iss" => "example.com",
+            "aud" => "example.com",
+            "iat" => time(),
+            "nbf" => time(),
+            "exp" => time() + 3600,
+            "data" => [
+                "username" => $username
+            ]
+        ];
+        $token = JWT::encode($payload, $key, 'HS256');
+        $response->getBody()->write(json_encode(["token" => $token]));
+    } else {
+        $response->getBody()->write("Credenciales inválidas");
+        return $response->withStatus(401);
+    }
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
+$app->add(new JwtAuthentication([
+    "secret" => "your_secret_key",
+    "attribute" => "token",
+    "secure" => false, 
+    "path" => [
+        $basePath . "/recursos",
+        "/recursos"
+    ],
+    "ignore" => [
+        $basePath . "/login",
+        "/login"
+    ],
+    "algorithm" => ["HS256"],
+    "error" => function ($response, $arguments) {
+        $data = [
+            "error" => "Token inválido o ausente",
+            "message" => $arguments['message'] ?? 'Unauthorized'
+        ];
+        $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type','application/json')->withStatus(401);
     }
 ]));
 
