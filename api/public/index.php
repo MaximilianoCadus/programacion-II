@@ -1,10 +1,13 @@
 <?php
+use Psr\Http\Server\RequestHandlerInterface as Handler;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Tuupola\Middleware\HttpBasicAuthentication;
-use Tuupola\Middleware\JwtAuthentication; // agregar namespace correcto para JWT Auth
+use Tuupola\Middleware\JwtAuthentication; 
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
 
 require __DIR__ . '/../vendor/autoload.php';
 require_once 'db_connection.php';
@@ -64,14 +67,21 @@ $app->post('/login', function (Request $request, Response $response) {
             "iat" => time(),
             "nbf" => time(),
             "exp" => time() + 3600,
-            "data" => [
-                "username" => $username
+            "user" => [
+                "username" => $username,
+                "role" => 'admin'
             ]
         ];
         $token = JWT::encode($payload, $key, 'HS256');
-        $response->getBody()->write(json_encode(["token" => $token]));
+        $response->getBody()->write(json_encode([
+            "token" => $token,
+            "user" => [
+                "username" => $username,
+                "role" => "admin"
+            ]
+        ]));
     } else {
-        $response->getBody()->write("Credenciales inválidas");
+        $response->getBody()->write(json_encode(["error" => "Credenciales inválidas"]));
         return $response->withStatus(401);
     }
     return $response->withHeader('Content-Type', 'application/json');
@@ -100,6 +110,49 @@ $app->add(new JwtAuthentication([
         return $response->withHeader('Content-Type','application/json')->withStatus(401);
     }
 ]));
+
+class AuthMiddleware {
+    public function __invoke(Request $request, Handler $handler): Response {
+        $authHeader = $request->getHeaderLine('Authorization');
+        if (!$authHeader) {
+            $response = new \Slim\Psr7\Response();
+            $response->getBody()->write(json_encode(['error' => 'Token requerido']));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+        }
+
+        $token = str_replace('Bearer ', '', $authHeader);
+
+        try {
+            $decoded = JWT::decode($token, new Key('your_secret_key', 'HS256'));
+            $request = $request->withAttribute('user', json_decode(json_encode($decoded), true));
+        } catch (\Exception $e) {
+            $response = new \Slim\Psr7\Response();
+            $response->getBody()->write(json_encode(['error' => 'Token inválido']));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+        }
+
+        return $handler->handle($request);
+    }
+}
+
+class RoleMiddleware {
+    private array $allowedRoles;
+
+    public function __construct(array $allowedRoles) {
+        $this->allowedRoles = $allowedRoles;
+    }
+
+    public function __invoke(Request $request, Handler $handler): Response {
+        $user = $request->getAttribute('user');
+        // Corregir el acceso al rol del usuario
+        if (!$user || !in_array($user['user']['role'], $this->allowedRoles)) {
+            $response = new \Slim\Psr7\Response();
+            $response->getBody()->write(json_encode(['error' => 'Acceso denegado']));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+        return $handler->handle($request);
+    }
+}
 
 $app->post('/user', function (Request $request, Response $response, $args) use ($db) {
 
@@ -267,7 +320,9 @@ $app->post('/recursos', function (Request $request, Response $response) use ($db
     
     $response->getBody()->write(json_encode(['error' => 'Error al crear recurso']));
     return $response->withStatus(500);
-});
+})
+->add(new RoleMiddleware(['admin'])) // Solo administradores pueden crear recursos
+->add(new AuthMiddleware()); // Primero autenticación
 
 $app->get('/recursos/disponibles', function (Request $request, Response $response) use ($db) {
     $params = $request->getQueryParams();
