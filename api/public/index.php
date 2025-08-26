@@ -28,8 +28,8 @@ $basePath = '/programacion-II/api/public';
 
 $app->add(new HttpBasicAuthentication([
     "path" => [
-        $basePath . "/user",
-        "/user" 
+        $basePath . "/login",
+        "/login" 
     ],
     "realm" => "Protected",
     "secure" => false, 
@@ -55,9 +55,23 @@ $app->add(new HttpBasicAuthentication([
 ]));
 
 $app->post('/login', function (Request $request, Response $response) {
-    $data = $request->getParsedBody();
-    $username = $data['username'] ?? '';
-    $password = $data['password'] ?? '';
+    $authHeader = $request->getHeaderLine('Authorization');
+    
+    if (!$authHeader || !str_starts_with($authHeader, 'Basic ')) {
+        $response->getBody()->write(json_encode(['error' => 'Se requiere autenticación Basic Auth']));
+        return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $credentials = base64_decode(substr($authHeader, 6)); 
+    $parts = explode(':', $credentials, 2);
+    
+    if (count($parts) !== 2) {
+        $response->getBody()->write(json_encode(['error' => 'Formato de credenciales inválido']));
+        return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $username = $parts[0];
+    $password = $parts[1];
 
     if ($username === 'user' && $password === 'password') {
         $key = "your_secret_key";
@@ -82,7 +96,7 @@ $app->post('/login', function (Request $request, Response $response) {
         ]));
     } else {
         $response->getBody()->write(json_encode(["error" => "Credenciales inválidas"]));
-        return $response->withStatus(401);
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
     }
     return $response->withHeader('Content-Type', 'application/json');
 });
@@ -144,7 +158,6 @@ class RoleMiddleware {
 
     public function __invoke(Request $request, Handler $handler): Response {
         $user = $request->getAttribute('user');
-        // Corregir el acceso al rol del usuario
         if (!$user || !in_array($user['user']['role'], $this->allowedRoles)) {
             $response = new \Slim\Psr7\Response();
             $response->getBody()->write(json_encode(['error' => 'Acceso denegado']));
@@ -187,8 +200,10 @@ $app->post('/user', function (Request $request, Response $response, $args) use (
     }
 
     $response->getBody()->write(json_encode(['message' => 'Usuario creado con éxito', 'Usuario' => $user]));
-    return $response;
-});
+    return $response
+        ->withHeader('Content-Type', 'application/json');
+})->add(new RoleMiddleware(['admin']))
+->add(new AuthMiddleware());
 
 $app->get('/userByUUID/{UUID}', function (Request $request, Response $response, $args) use ($db) {
 
@@ -254,8 +269,10 @@ $app->put('/user/{UUID}', function (Request $request, Response $response, $args)
     }
 
     $response->getBody()->write(json_encode(['message' => 'Usuario actualizado con éxito']));
-    return $response;
-});
+    return $response
+        ->withHeader('Content-Type', 'application/json');
+})->add(new RoleMiddleware(['admin']))
+->add(new AuthMiddleware());
 
 $app->delete('/user/{UUID}', function (Request $request, Response $response, $args) use ($db) {
 
@@ -276,8 +293,10 @@ $app->delete('/user/{UUID}', function (Request $request, Response $response, $ar
     }
 
     $response->getBody()->write(json_encode(['message' => 'Usuario eliminado con éxito']));
-    return $response;
-});
+    return $response
+        ->withHeader('Content-Type', 'application/json');
+})->add(new RoleMiddleware(['admin']))
+->add(new AuthMiddleware());
 
 $app->get('/recursos', function (Request $request, Response $response) use ($db) {
     $recursos = $db->getAllResources();
@@ -290,7 +309,9 @@ $app->get('/recursos', function (Request $request, Response $response) use ($db)
     }
     
     $response->getBody()->write(json_encode(['error' => 'Error al obtener recursos']));
-    return $response->withStatus(500);
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(500);
 });
 
 $app->post('/recursos', function (Request $request, Response $response) use ($db) {
@@ -300,7 +321,9 @@ $app->post('/recursos', function (Request $request, Response $response) use ($db
     foreach ($required as $field) {
         if (empty($data[$field])) {
             $response->getBody()->write(json_encode(['error' => "Campo $field requerido"]));
-            return $response->withStatus(400);
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(400);
         }
     }
 
@@ -315,21 +338,27 @@ $app->post('/recursos', function (Request $request, Response $response) use ($db
             'message' => 'Recurso creado',
             'id' => $createdId
         ]));
-        return $response->withStatus(201);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(201);
     }
     
     $response->getBody()->write(json_encode(['error' => 'Error al crear recurso']));
-    return $response->withStatus(500);
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(500);
 })
-->add(new RoleMiddleware(['admin'])) // Solo administradores pueden crear recursos
-->add(new AuthMiddleware()); // Primero autenticación
+->add(new RoleMiddleware(['admin']))
+->add(new AuthMiddleware());
 
 $app->get('/recursos/disponibles', function (Request $request, Response $response) use ($db) {
     $params = $request->getQueryParams();
     
     if (empty($params['fecha_inicio']) || empty($params['fecha_fin'])) {
         $response->getBody()->write(json_encode(['error' => 'Parámetros fecha_inicio y fecha_fin requeridos']));
-        return $response->withStatus(400);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(400);
     }
 
     $disponibles = $db->getAvailableResources(
@@ -339,11 +368,15 @@ $app->get('/recursos/disponibles', function (Request $request, Response $respons
 
     if ($disponibles !== false) {
         $response->getBody()->write(json_encode($disponibles));
-        return $response->withStatus(200);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
     }
     
     $response->getBody()->write(json_encode(['error' => 'Error al verificar disponibilidad']));
-    return $response->withStatus(500);
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(500);
 });
 
 $app->get('/recursos/{id}', function (Request $request, Response $response, $args) use ($db) {
@@ -358,11 +391,15 @@ $app->get('/recursos/{id}', function (Request $request, Response $response, $arg
 
     if ($recurso) {
         $response->getBody()->write(json_encode($recurso));
-        return $response->withStatus(200);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
     }
     
     $response->getBody()->write(json_encode(['error' => 'Recurso no encontrado']));
-    return $response->withStatus(404);
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(404);
 });
 
 $app->get('/reservas/usuario/{UUID}', function (Request $request, Response $response, $args) use ($db) {
@@ -370,18 +407,24 @@ $app->get('/reservas/usuario/{UUID}', function (Request $request, Response $resp
     
     if (!$UUID) {
         $response->getBody()->write(json_encode(['error' => 'UUID no proporcionado']));
-        return $response->withStatus(400);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(400);
     }
 
     $reservas = $db->getReservationsByUser($UUID);
 
     if ($reservas !== false) {
         $response->getBody()->write(json_encode($reservas));
-        return $response->withStatus(200);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
     }
     
     $response->getBody()->write(json_encode(['error' => 'Error al obtener reservas']));
-    return $response->withStatus(500);
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(500);
 });
 
 $app->post('/reservas/{id}/confirmar', function (Request $request, Response $response, $args) use ($db) {
@@ -389,17 +432,24 @@ $app->post('/reservas/{id}/confirmar', function (Request $request, Response $res
     
     if (!$id) {
         $response->getBody()->write(json_encode(['error' => 'ID de reserva no proporcionado']));
-        return $response->withStatus(400);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(400);
     }
 
     if ($db->confirmReservation($id)) {
         $response->getBody()->write(json_encode(['message' => 'Reserva confirmada y notificada']));
-        return $response->withStatus(200);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
     }
     
     $response->getBody()->write(json_encode(['error' => 'Error al confirmar reserva']));
-    return $response->withStatus(500);
-});
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(500);
+})->add(new RoleMiddleware(['admin']))
+->add(new AuthMiddleware());
 
 $app->post('/reservas', function (Request $request, Response $response) use ($db) {
     
@@ -414,7 +464,9 @@ $app->post('/reservas', function (Request $request, Response $response) use ($db
     foreach ($required as $field) {
         if (empty($data[$field])) {
             $response->getBody()->write(json_encode(['error' => "Campo $field requerido"]));
-            return $response->withStatus(400);
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(400);
         }
     }
 
@@ -424,7 +476,9 @@ $app->post('/reservas', function (Request $request, Response $response) use ($db
         $data['fecha_fin']
     )) {
         $response->getBody()->write(json_encode(['error' => 'Recurso no disponible en esas fechas']));
-        return $response->withStatus(409);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(409);
     }
 
     $reservaId = $db->createReservation(
@@ -439,12 +493,17 @@ $app->post('/reservas', function (Request $request, Response $response) use ($db
             'message' => 'Reserva creada',
             'id' => $reservaId
         ]));
-        return $response->withStatus(201);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(201);
     }
     
     $response->getBody()->write(json_encode(['error' => 'Error al crear reserva']));
-    return $response->withStatus(500);
-});
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(500);
+})->add(new RoleMiddleware(['admin']))
+->add(new AuthMiddleware());
 
 $app->put('/recursos/{id}', function (Request $request, Response $response, $args) use ($db) {
     $id = $args['id'];
@@ -452,61 +511,83 @@ $app->put('/recursos/{id}', function (Request $request, Response $response, $arg
     
     if (!$id) {
         $response->getBody()->write(json_encode(['error' => 'ID no proporcionado']));
-        return $response->withStatus(400);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(400);
     }
 
     if (empty($data)) {
         $response->getBody()->write(json_encode(['error' => 'Datos de recurso inválidos']));
-        return $response->withStatus(400);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(400);
     }
 
     $updateFields = [];
     if (isset($data['nombre'])) {
         if (!$db->updateResourceName($id, $data['nombre'])) {
             $response->getBody()->write(json_encode(['error' => 'Error al actualizar nombre del recurso']));
-            return $response->withStatus(500);
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(500);
         }
     }
     
     if (isset($data['descripcion'])) {
         if (!$db->updateResourceDescription($id, $data['descripcion'])) {
             $response->getBody()->write(json_encode(['error' => 'Error al actualizar descripción del recurso']));
-            return $response->withStatus(500);
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(500);
         }
     }
     
     if (isset($data['capacidad'])) {
         if (!$db->updateResourceCapacity($id, $data['capacidad'])) {
             $response->getBody()->write(json_encode(['error' => 'Error al actualizar capacidad del recurso']));
-            return $response->withStatus(500);
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(500);
         }
     }
 
     $response->getBody()->write(json_encode(['message' => 'Recurso actualizado con éxito']));
-    return $response->withStatus(200);
-});
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(200);
+})->add(new RoleMiddleware(['admin']))
+->add(new AuthMiddleware());
 
 $app->delete('/recursos/{id}', function (Request $request, Response $response, $args) use ($db) {
     $id = $args['id'];
     
     if (!$id) {
         $response->getBody()->write(json_encode(['error' => 'ID no proporcionado']));
-        return $response->withStatus(400);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(400);
     }
 
     if ($db->hasActiveReservations($id)) {
         $response->getBody()->write(json_encode(['error' => 'No se puede eliminar, tiene reservas activas']));
-        return $response->withStatus(409);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(409);
     }
 
     if (!$db->deleteResource($id)) {
         $response->getBody()->write(json_encode(['error' => 'Error al eliminar recurso']));
-        return $response->withStatus(500);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(500);
     }
 
     $response->getBody()->write(json_encode(['message' => 'Recurso eliminado con éxito']));
-    return $response->withStatus(200);
-});
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(200);
+})->add(new RoleMiddleware(['admin']))
+->add(new AuthMiddleware());
 
 $app->put('/reservas/{id}', function (Request $request, Response $response, $args) use ($db) {
     $id = $args['id'];
@@ -514,19 +595,25 @@ $app->put('/reservas/{id}', function (Request $request, Response $response, $arg
     
     if (!$id) {
         $response->getBody()->write(json_encode(['error' => 'ID de reserva no proporcionado']));
-        return $response->withStatus(400);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(400);
     }
 
     if (empty($data)) {
         $response->getBody()->write(json_encode(['error' => 'Datos de reserva inválidos']));
-        return $response->withStatus(400);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(400);
     }
 
     if (isset($data['fecha_inicio']) || isset($data['fecha_fin']) || isset($data['recurso_id'])) {
         $reserva = $db->getReservation($id);
         if (!$reserva) {
             $response->getBody()->write(json_encode(['error' => 'Reserva no encontrada']));
-            return $response->withStatus(404);
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(404);
         }
 
         $recurso_id = $data['recurso_id'] ?? $reserva['recurso_id'];
@@ -540,7 +627,9 @@ $app->put('/reservas/{id}', function (Request $request, Response $response, $arg
             $id
         )) {
             $response->getBody()->write(json_encode(['error' => 'Recurso no disponible en esas fechas']));
-            return $response->withStatus(409);
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(409);
         }
     }
 
@@ -548,44 +637,60 @@ $app->put('/reservas/{id}', function (Request $request, Response $response, $arg
     if (isset($data['recurso_id'])) {
         if (!$db->updateReservationResource($id, $data['recurso_id'])) {
             $response->getBody()->write(json_encode(['error' => 'Error al actualizar recurso de la reserva']));
-            return $response->withStatus(500);
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(500);
         }
     }
     
     if (isset($data['fecha_inicio'])) {
         if (!$db->updateReservationStart($id, $data['fecha_inicio'])) {
             $response->getBody()->write(json_encode(['error' => 'Error al actualizar fecha de inicio']));
-            return $response->withStatus(500);
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(500);
         }
     }
     
     if (isset($data['fecha_fin'])) {
         if (!$db->updateReservationEnd($id, $data['fecha_fin'])) {
             $response->getBody()->write(json_encode(['error' => 'Error al actualizar fecha de fin']));
-            return $response->withStatus(500);
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(500);
         }
     }
 
     $response->getBody()->write(json_encode(['message' => 'Reserva actualizada con éxito']));
-    return $response->withStatus(200);
-});
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(200);
+})->add(new RoleMiddleware(['admin']))
+->add(new AuthMiddleware());
 
 $app->delete('/reservas/{id}', function (Request $request, Response $response, $args) use ($db) {
     $id = $args['id'];
     
     if (!$id) {
         $response->getBody()->write(json_encode(['error' => 'ID de reserva no proporcionado']));
-        return $response->withStatus(400);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(400);
     }
 
     if (!$db->deleteReservation($id)) {
         $response->getBody()->write(json_encode(['error' => 'Error al eliminar reserva']));
-        return $response->withStatus(500);
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(500);
     }
 
     $response->getBody()->write(json_encode(['message' => 'Reserva eliminada con éxito']));
-    return $response->withStatus(200);
-});
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(200);
+})->add(new RoleMiddleware(['admin']))
+->add(new AuthMiddleware());
 
 $app->setBasePath($basePath);
 
