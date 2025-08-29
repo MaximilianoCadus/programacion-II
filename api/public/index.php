@@ -26,35 +26,7 @@ $db = new Database($host, $dbname, $username, $password);
 
 $basePath = '/programacion-II/api/public';
 
-$app->add(new HttpBasicAuthentication([
-    "path" => [
-        $basePath . "/login",
-        "/login" 
-    ],
-    "realm" => "Protected",
-    "secure" => false, 
-    "users" => [
-        "user" => "password"
-    ],
-    "before" => function ($request, $params) {
-        error_log("[BasicAuth] Intento user=" . ($params['user'] ?? 'null'));
-        return $request;
-    },
-    "error" => function ($response, $arguments) {
-        error_log("[BasicAuth] Falló autenticación");
-        $data = [
-            "error" => "Credenciales inválidas o faltantes",
-            "message" => $arguments["message"] ?? "Unauthorized"
-        ];
-        $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
-        $response->getBody()->write($payload);
-        return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withStatus(401);
-    }
-]));
-
-$app->post('/login', function (Request $request, Response $response) {
+$app->post('/login', function (Request $request, Response $response) use ($db) {
     $authHeader = $request->getHeaderLine('Authorization');
     
     if (!$authHeader || !str_starts_with($authHeader, 'Basic ')) {
@@ -62,7 +34,7 @@ $app->post('/login', function (Request $request, Response $response) {
         return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
     }
     
-    $credentials = base64_decode(substr($authHeader, 6)); 
+    $credentials = base64_decode(substr($authHeader, 6));
     $parts = explode(':', $credentials, 2);
     
     if (count($parts) !== 2) {
@@ -70,34 +42,47 @@ $app->post('/login', function (Request $request, Response $response) {
         return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
     }
     
-    $username = $parts[0];
+    $email = $parts[0];
     $password = $parts[1];
-
-    if ($username === 'user' && $password === 'password') {
-        $key = "your_secret_key";
-        $payload = [
-            "iss" => "example.com",
-            "aud" => "example.com",
-            "iat" => time(),
-            "nbf" => time(),
-            "exp" => time() + 3600,
-            "user" => [
-                "username" => $username,
-                "role" => 'admin'
-            ]
-        ];
-        $token = JWT::encode($payload, $key, 'HS256');
-        $response->getBody()->write(json_encode([
-            "token" => $token,
-            "user" => [
-                "username" => $username,
-                "role" => "admin"
-            ]
-        ]));
-    } else {
-        $response->getBody()->write(json_encode(["error" => "Credenciales inválidas"]));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
+    
+    $user = $db->getUserByEmail($email);
+    
+    if (!$user) {
+        $response->getBody()->write(json_encode(['error' => 'Usuario no encontrado']));
+        return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
     }
+    
+    if ($user['pswd'] !== $password) {
+        $response->getBody()->write(json_encode(['error' => 'Contraseña incorrecta']));
+        return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+    }
+    
+    $rol_id = $user['rol_id'];
+    $rol = ($rol_id == 1) ? 'admin' : 'usuario';
+    
+    $key = "your_secret_key";
+    $payload = [
+        "iss" => "example.com",
+        "aud" => "example.com",
+        "iat" => time(),
+        "nbf" => time(),
+        "exp" => time() + 3600,
+        "user" => [
+            "email" => $email,
+            "role" => $rol
+        ]
+    ];
+    
+    $token = JWT::encode($payload, $key, 'HS256');
+    
+    $response->getBody()->write(json_encode([
+        "token" => $token,
+        "user" => [
+            "email" => $email,
+            "role" => $rol
+        ]
+    ]));
+    
     return $response->withHeader('Content-Type', 'application/json');
 });
 
@@ -167,7 +152,7 @@ class RoleMiddleware {
     }
 }
 
-$app->post('/user', function (Request $request, Response $response, $args) use ($db) {
+$app->post('/register', function (Request $request, Response $response, $args) use ($db) {
 
     $user = $request->getParsedBody();
 
@@ -182,15 +167,16 @@ $app->post('/user', function (Request $request, Response $response, $args) use (
     $firstName = $user['firstName'] ?? null;
     $lastName = $user['lastName'] ?? null;
     $email = $user['email'] ?? null;
+    $pswd = $user['pswd'] ?? null;
 
-    if (!$UUID || !$firstName || !$lastName || !$email) {
+    if (!$UUID || !$firstName || !$lastName || !$email || !$pswd) {
         $response->getBody()->write(json_encode(['error' => 'Faltan datos del usuario']));
         return $response
             ->withHeader('Content-Type', 'application/json')
             ->withStatus(400);
     }
 
-    $userCreated = $db->createUser($UUID, $firstName, $lastName, $email);
+    $userCreated = $db->createUser($UUID, $firstName, $lastName, $email, $pswd);
 
     if (!$userCreated) {
         $response->getBody()->write(json_encode(['error' => 'Error al crear el usuario']));
@@ -201,9 +187,9 @@ $app->post('/user', function (Request $request, Response $response, $args) use (
 
     $response->getBody()->write(json_encode(['message' => 'Usuario creado con éxito', 'Usuario' => $user]));
     return $response
-        ->withHeader('Content-Type', 'application/json');
-})->add(new RoleMiddleware(['admin']))
-->add(new AuthMiddleware());
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(200);
+});
 
 $app->get('/userByUUID/{UUID}', function (Request $request, Response $response, $args) use ($db) {
 
@@ -271,7 +257,7 @@ $app->put('/user/{UUID}', function (Request $request, Response $response, $args)
     $response->getBody()->write(json_encode(['message' => 'Usuario actualizado con éxito']));
     return $response
         ->withHeader('Content-Type', 'application/json');
-})->add(new RoleMiddleware(['admin']))
+})->add(new RoleMiddleware(['usuario']))
 ->add(new AuthMiddleware());
 
 $app->delete('/user/{UUID}', function (Request $request, Response $response, $args) use ($db) {
@@ -452,12 +438,6 @@ $app->post('/reservas/{id}/confirmar', function (Request $request, Response $res
 ->add(new AuthMiddleware());
 
 $app->post('/reservas', function (Request $request, Response $response) use ($db) {
-    
-    error_log("POST /reservas recibido");
-    error_log("Content-Type: " . $request->getHeaderLine('Content-Type'));
-    error_log("Body: " . $request->getBody()->getContents());
-    $request->getBody()->rewind(); 
-    
     $data = $request->getParsedBody();
     
     $required = ['recurso_id', 'usuario_UUID', 'fecha_inicio', 'fecha_fin'];
@@ -555,7 +535,7 @@ $app->put('/recursos/{id}', function (Request $request, Response $response, $arg
     return $response
         ->withHeader('Content-Type', 'application/json')
         ->withStatus(200);
-})->add(new RoleMiddleware(['admin']))
+})->add(new RoleMiddleware(['usuario']))
 ->add(new AuthMiddleware());
 
 $app->delete('/recursos/{id}', function (Request $request, Response $response, $args) use ($db) {
@@ -665,7 +645,7 @@ $app->put('/reservas/{id}', function (Request $request, Response $response, $arg
     return $response
         ->withHeader('Content-Type', 'application/json')
         ->withStatus(200);
-})->add(new RoleMiddleware(['admin']))
+})->add(new RoleMiddleware(['usuario']))
 ->add(new AuthMiddleware());
 
 $app->delete('/reservas/{id}', function (Request $request, Response $response, $args) use ($db) {

@@ -16,14 +16,15 @@ class Database {
         return $this->pdo;
     }
 
-    public function createUser($UUID, $firstName, $lastName, $email) {
+    public function createUser($UUID, $firstName, $lastName, $email, $pswd) {
         try {
-            $query = "INSERT INTO usuarios (UUID, firstName, lastName, email) VALUES (:UUID, :firstName, :lastName, :email)";
+            $query = "INSERT INTO usuarios (UUID, firstName, lastName, email, pswd, rol_id) VALUES (:UUID, :firstName, :lastName, :email, :pswd, 2)";
             $stmt = $this->pdo->prepare($query);
             $stmt->bindParam(':UUID', $UUID, PDO::PARAM_STR);
             $stmt->bindParam(':firstName', $firstName, PDO::PARAM_STR);
             $stmt->bindParam(':lastName', $lastName, PDO::PARAM_STR);
             $stmt->bindParam(':email', $email, PDO::PARAM_STR);
+            $stmt->bindParam(':pswd', $pswd, PDO::PARAM_STR);
             $stmt->execute();
             return true;
         } catch (PDOException $e) {
@@ -37,6 +38,19 @@ class Database {
             $query = "SELECT * FROM usuarios WHERE UUID = :UUID";
             $stmt = $this->pdo->prepare($query);
             $stmt->bindParam(':UUID', $UUID, PDO::PARAM_STR);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            echo "Error al obtener el usuario: " . $e->getMessage();
+            return false;
+        }
+    }
+
+    public function getUserByEmail($email) {
+        try {
+            $query = "SELECT * FROM usuarios WHERE email = :email";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindParam(':email', $email, PDO::PARAM_STR);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
