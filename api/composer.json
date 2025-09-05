@@ -8,6 +8,7 @@
         "laminas/laminas-diactoros": "^3.6",
         "tuupola/slim-basic-auth": "^3.4",
         "tuupola/slim-jwt-auth": "^3.8",
-        "firebase/php-jwt": "^5.5"
+        "firebase/php-jwt": "^5.5",
+        "vlucas/phpdotenv": "^5.6"
     }
 }

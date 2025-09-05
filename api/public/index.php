@@ -12,19 +12,23 @@ use Firebase\JWT\Key;
 require __DIR__ . '/../vendor/autoload.php';
 require_once 'db_connection.php';
 
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
+
 $app = AppFactory::create();
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 
-$host = '172.16.203.164';
-$dbname = 'api';
-$username = 'root';
-$password = 'Itachi91218';
+$host = $_ENV['HOST'];
+$dbname = $_ENV['DBNAME'];
+$username = $_ENV['USERNAME'];
+$password = $_ENV['PASSWORD'];
+$basePath = $_ENV['BASEPATH'];
+$jwtKey = $_ENV['KEY'];
+$jwtSecret = $_ENV['SECRET'];
 
 $db = new Database($host, $dbname, $username, $password);
-
-$basePath = '/programacion-II/api/public';
 
 $app->post('/login', function (Request $request, Response $response) use ($db) {
     $authHeader = $request->getHeaderLine('Authorization');
@@ -60,7 +64,6 @@ $app->post('/login', function (Request $request, Response $response) use ($db) {
     $rol_id = $user['rol_id'];
     $rol = ($rol_id == 1) ? 'admin' : 'usuario';
 
-    $key = "your_secret_key";
     $payload = [
         "iss" => "example.com",
         "aud" => "example.com",
@@ -73,7 +76,7 @@ $app->post('/login', function (Request $request, Response $response) use ($db) {
         ]
     ];
 
-    $token = JWT::encode($payload, $key, 'HS256');
+    $token = JWT::encode($payload, $jwtSecret, 'HS256');
 
     $response->getBody()->write(json_encode([
         "token" => $token,
@@ -87,7 +90,7 @@ $app->post('/login', function (Request $request, Response $response) use ($db) {
 });
 
 $app->add(new JwtAuthentication([
-    "secret" => "your_secret_key",
+    "secret" => $jwtSecret,
     "attribute" => "token",
     "secure" => false,
     "path" => [
@@ -112,6 +115,13 @@ $app->add(new JwtAuthentication([
 
 class AuthMiddleware
 {
+    private string $jwtSecret;
+
+    public function __construct(string $jwtSecret)
+    {
+        $this->jwtSecret = $jwtSecret;
+    }
+
     public function __invoke(Request $request, Handler $handler): Response
     {
         $authHeader = $request->getHeaderLine('Authorization');
@@ -124,7 +134,7 @@ class AuthMiddleware
         $token = str_replace('Bearer ', '', $authHeader);
 
         try {
-            $decoded = JWT::decode($token, new Key('your_secret_key', 'HS256'));
+            $decoded = JWT::decode($token, new Key($this->jwtSecret, 'HS256'));
             $request = $request->withAttribute('user', json_decode(json_encode($decoded), true));
         } catch (\Exception $e) {
             $response = new \Slim\Psr7\Response();
@@ -272,7 +282,7 @@ $app->put('/user/{UUID}', function (Request $request, Response $response, $args)
     return $response
         ->withHeader('Content-Type', 'application/json');
 })->add(new RoleMiddleware(['usuario', 'admin']))
-->add(new AuthMiddleware());
+->add(new AuthMiddleware($jwtSecret));
 
 $app->delete('/user/{UUID}', function (Request $request, Response $response, $args) use ($db) {
 
@@ -296,7 +306,7 @@ $app->delete('/user/{UUID}', function (Request $request, Response $response, $ar
     return $response
         ->withHeader('Content-Type', 'application/json');
 })->add(new RoleMiddleware(['admin']))
-->add(new AuthMiddleware());
+->add(new AuthMiddleware($jwtSecret));
 
 $app->get('/recursos', function (Request $request, Response $response) use ($db) {
     $recursos = $db->getAllResources();
@@ -349,7 +359,7 @@ $app->post('/recursos', function (Request $request, Response $response) use ($db
         ->withStatus(500);
 })
 ->add(new RoleMiddleware(['admin']))
-->add(new AuthMiddleware());
+->add(new AuthMiddleware($jwtSecret));
 
 $app->get('/recursos/disponibles', function (Request $request, Response $response) use ($db) {
     $params = $request->getQueryParams();
@@ -449,7 +459,7 @@ $app->post('/reservas/{id}/confirmar', function (Request $request, Response $res
         ->withHeader('Content-Type', 'application/json')
         ->withStatus(500);
 })->add(new RoleMiddleware(['admin']))
-->add(new AuthMiddleware());
+->add(new AuthMiddleware($jwtSecret));
 
 $app->post('/reservas', function (Request $request, Response $response) use ($db) {
     $data = $request->getParsedBody();
@@ -497,7 +507,7 @@ $app->post('/reservas', function (Request $request, Response $response) use ($db
         ->withHeader('Content-Type', 'application/json')
         ->withStatus(500);
 })->add(new RoleMiddleware(['admin']))
-->add(new AuthMiddleware());
+->add(new AuthMiddleware($jwtSecret));
 
 $app->put('/recursos/{id}', function (Request $request, Response $response, $args) use ($db) {
     $id = $args['id'];
@@ -550,7 +560,7 @@ $app->put('/recursos/{id}', function (Request $request, Response $response, $arg
         ->withHeader('Content-Type', 'application/json')
         ->withStatus(200);
 })->add(new RoleMiddleware(['usuario', 'admin']))
-->add(new AuthMiddleware());
+->add(new AuthMiddleware($jwtSecret));
 
 $app->delete('/recursos/{id}', function (Request $request, Response $response, $args) use ($db) {
     $id = $args['id'];
@@ -581,7 +591,7 @@ $app->delete('/recursos/{id}', function (Request $request, Response $response, $
         ->withHeader('Content-Type', 'application/json')
         ->withStatus(200);
 })->add(new RoleMiddleware(['admin']))
-->add(new AuthMiddleware());
+->add(new AuthMiddleware($jwtSecret));
 
 $app->put('/reservas/{id}', function (Request $request, Response $response, $args) use ($db) {
     $id = $args['id'];
@@ -660,7 +670,7 @@ $app->put('/reservas/{id}', function (Request $request, Response $response, $arg
         ->withHeader('Content-Type', 'application/json')
         ->withStatus(200);
 })->add(new RoleMiddleware(['usuario', 'admin']))
-->add(new AuthMiddleware());
+->add(new AuthMiddleware($jwtSecret));
 
 $app->delete('/reservas/{id}', function (Request $request, Response $response, $args) use ($db) {
     $id = $args['id'];
@@ -684,7 +694,7 @@ $app->delete('/reservas/{id}', function (Request $request, Response $response, $
         ->withHeader('Content-Type', 'application/json')
         ->withStatus(200);
 })->add(new RoleMiddleware(['admin']))
-->add(new AuthMiddleware());
+->add(new AuthMiddleware($jwtSecret));
 
 $app->setBasePath($basePath);
 
