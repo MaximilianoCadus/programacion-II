@@ -30,7 +30,7 @@ $jwtSecret = $_ENV['SECRET'];
 
 $db = new Database($host, $dbname, $username, $password);
 
-$app->post('/login', function (Request $request, Response $response) use ($db) {
+$app->post('/login', function (Request $request, Response $response) use ($db, $jwtSecret) {
     $authHeader = $request->getHeaderLine('Authorization');
 
     if (!$authHeader || !str_starts_with($authHeader, 'Basic ')) {
