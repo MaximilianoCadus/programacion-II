@@ -89,30 +89,6 @@ $app->post('/login', function (Request $request, Response $response) use ($db, $
     return $response->withHeader('Content-Type', 'application/json');
 });
 
-$app->add(new JwtAuthentication([
-    "secret" => $jwtSecret,
-    "attribute" => "token",
-    "secure" => false,
-    "path" => [
-        $basePath . "/recursos",
-        "/recursos"
-    ],
-    "ignore" => [
-        $basePath . "/login",
-        "/login"
-    ],
-    "algorithm" => ["HS256"],
-    "error" => function ($response, $arguments) {
-        $data = [
-            "error" => "Token inválido o ausente",
-            "message" => $arguments['message'] ?? 'Unauthorized'
-        ];
-        $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
-        $response->getBody()->write($payload);
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
-    }
-]));
-
 class AuthMiddleware
 {
     private string $jwtSecret;

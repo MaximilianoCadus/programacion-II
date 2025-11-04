@@ -1,0 +1,632 @@
+{
+	"info": {
+		"_postman_id": "46259258-8377-4e29-beda-107257e93e5e",
+		"name": "API",
+		"description": "Está colección de requests corresponden a la API desarrollada para la materia Programación II dictada por el Profesor Sebastián Bruselario en la Tecnicatura Superior en Desarrollo de Software en el Instituto Zona Oeste",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21505010"
+	},
+	"item": [
+		{
+			"name": "Register",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const UUID = pm.variables.replaceIn('{{$randomUUID}}');\r",
+							"const firstName = pm.variables.replaceIn('{{$randomFirstName}}');\r",
+							"const lastName = pm.variables.replaceIn('{{$randomLastName}}');\r",
+							"const email = `${firstName}.${lastName}@example.com`.toLowerCase();\r",
+							"const password = `${lastName}.${firstName}`.toLowerCase();\r",
+							"\r",
+							"pm.collectionVariables.set(\"UUID\", UUID);\r",
+							"pm.collectionVariables.set(\"firstName\", firstName);\r",
+							"pm.collectionVariables.set(\"lastName\", lastName);\r",
+							"pm.collectionVariables.set(\"userEmail\", email);\r",
+							"pm.collectionVariables.set(\"pswd\", password)"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"UUID\": \"{{UUID}}\",\r\n  \"firstName\": \"{{firstName}}\",\r\n  \"lastName\": \"{{lastName}}\",\r\n  \"email\": \"{{userEmail}}\",\r\n  \"pswd\": \"{{pswd}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/register",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener usuario",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/userByUUID/3faea1ae-c6a6-4e14-a916-f93183f23a37",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"userByUUID",
+						"3faea1ae-c6a6-4e14-a916-f93183f23a37"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Actualizar usuario",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"firstName\": \"{{$randomFirstName}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/user/370d6a11-3a24-4d4b-942e-b661666db055",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"user",
+						"370d6a11-3a24-4d4b-942e-b661666db055"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Eliminar usuario",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/user/ceac8bb3-3b0a-40df-a19d-96fa60239672",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"user",
+						"ceac8bb3-3b0a-40df-a19d-96fa60239672"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Crear recurso",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.variables.replaceIn('{{$randomInt}}');"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nombre\": \"Sala {{$randomInt}}\",\r\n  \"descripcion\": \"Sala de reuniones\",\r\n  \"capacidad\": {{$randomInt}}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/recursos",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"recursos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener recurso",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/recursos/36",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"recursos",
+						"36"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener recursos",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/recursos",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"recursos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Actualizar recurso",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"capacidad\": {{$randomInt}}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/recursos/13",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"recursos",
+						"13"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Eliminar recurso",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/recursos/36",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"recursos",
+						"36"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Crear reserva",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"recurso_id\": \"42\",\r\n  \"usuario_UUID\": \"03112001\",\r\n  \"fecha_inicio\": \"{{fecha_inicio}}\",\r\n  \"fecha_fin\": \"{{fecha_fin}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/reservas",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"reservas"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener reservas de usuario",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/reservas/usuario/03112001",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"reservas",
+						"usuario",
+						"03112001"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Confirmar reserva",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/reservas/4/confirmar",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"reservas",
+						"4",
+						"confirmar"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Actualizar reserva",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"fecha_inicio\": \"{{fecha_inicio}}\",\r\n  \"fecha_fin\": \"{{fecha_fin}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/reservas/3",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"reservas",
+						"3"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Eliminar reserva",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/reservas/3",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"reservas",
+						"3"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener recursos disponibles",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/recursos/disponibles?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"recursos",
+						"disponibles"
+					],
+					"query": [
+						{
+							"key": "fecha_inicio",
+							"value": "{{fecha_inicio}}"
+						},
+						{
+							"key": "fecha_fin",
+							"value": "{{fecha_fin}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Obtener la respuesta JSON\r",
+							"const responseJson = pm.response.json();\r",
+							"\r",
+							"// Extraer el token y guardarlo en variable de entorno\r",
+							"const token = responseJson.token;\r",
+							"pm.environment.set(\"auth_token\", token);"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "91218",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "maxicadus172@gmail.com",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					"// Generar fecha de inicio (desde hoy hasta 30 días posteriores)\r",
+					"const today = new Date();\r",
+					"const startDate = new Date(today.getTime() + Math.random() * 30 * 24 * 60 * 60 * 1000);\r",
+					"\r",
+					"// Generar fecha de fin (desde 31 días después de hoy hasta 365 días)\r",
+					"const minEndDate = new Date(today.getTime() + 31 * 24 * 60 * 60 * 1000);\r",
+					"const maxEndDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000);\r",
+					"const endDate = new Date(minEndDate.getTime() + Math.random() * (maxEndDate.getTime() - minEndDate.getTime()));\r",
+					"\r",
+					"// Formatear fechas (ISO format)\r",
+					"const fechaInicio = startDate.toISOString().split('T')[0]; // YYYY-MM-DD\r",
+					"const fechaFin = endDate.toISOString().split('T')[0];\r",
+					"\r",
+					"// Guardar en variables de entorno\r",
+					"pm.environment.set(\"fecha_inicio\", fechaInicio);\r",
+					"pm.environment.set(\"fecha_fin\", fechaFin);"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "UUID",
+			"value": ""
+		},
+		{
+			"key": "firstName",
+			"value": ""
+		},
+		{
+			"key": "lastName",
+			"value": ""
+		},
+		{
+			"key": "userEmail",
+			"value": ""
+		},
+		{
+			"key": "pswd",
+			"value": ""
+		}
+	]
+}
